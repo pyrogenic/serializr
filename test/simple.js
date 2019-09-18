@@ -3,6 +3,7 @@ var _ = require("..")
 var serialize = _.serialize
 var deserialize = _.deserialize
 var primitive = _.primitive
+var date = _.date
 var update = _.update
 
 test("it should serialize simple object", t1 => {
@@ -101,19 +102,24 @@ test("it should respect `*` : schema prop schemas", t => {
         factory: () => ({}),
         pattern: /^\d.\d+$/,
         props: {
-            x: primitive()
+            x: primitive(),
+            d: date(),
         }
     }
 
     var s = _.createSimpleSchema({ "*" : schema} )
-    t.deepEqual(_.serialize(s, { "1.0": {x: 42}, "2.10": {x: 17 } }), { "1.0": {x: 42}, "2.10": {x: 17 } })
-    t.deepEqual(_.deserialize(s, { "1.0": {x: 42}, "2.10": {x: 17 } }), { "1.0": {x: 42}, "2.10": {x: 17 } })
 
-    t.deepEqual(_.serialize(s, { a: new Date(), d: 2 }), { d: 2 })
+    const timestamp = new Date()
+    const now = timestamp.getTime()
+    t.deepEqual(_.serialize(s, { "1.0": {x: 42}, "2.10": {x: 17, d: timestamp } }), { "1.0": {x: 42}, "2.10": {x: 17, d: now} })
+    t.deepEqual(_.deserialize(s, { "1.0": {x: 42}, "2.10": {x: 17, d: now} }), { "1.0": {x: 42}, "2.10": {x: 17, d: timestamp } })
+
+    t.deepEqual(_.serialize(s, { q: timestamp, "1.0": {x: 42} }), { "1.0": {x: 42 }})
     t.deepEqual(_.serialize(s, { a: {}, "2.10": {x: 17 } }), { "2.10": {x: 17 }})
 
     t.throws(() => _.deserialize(s, { "1.0": new Date() }), /encountered non primitive value while deserializing/)
     t.throws(() => _.deserialize(s, { "1.0": {} }), /encountered non primitive value while deserializing/)
+    
     var s2 = _.createSimpleSchema({
         "*" : schema,
         "1.0": _.date()
