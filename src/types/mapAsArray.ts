@@ -1,6 +1,7 @@
 import { invariant, isPropSchema, isMapLike, processAdditionalPropArgs } from "../utils/utils"
 import { _defaultPrimitiveProp } from "../constants"
 import list from "./list"
+import { PropSchema, AdditionalPropArgs } from "../api/types"
 
 /**
  * Similar to map, mapAsArray can be used to serialize a map-like collection where the key is
@@ -11,56 +12,52 @@ import list from "./list"
  * allowed to have non-string keys in the map. The serialized json also may be slightly more
  * compact.
  *
- * @param {any} propSchema
- * @param {string} keyPropertyName - the property of stored objects used as key in the map
- * @param {AdditionalPropArgs} additionalArgs optional object that contains beforeDeserialize and/or afterDeserialize handlers
- * @returns {PropSchema}
+ * @param keyPropertyName - the property of stored objects used as key in the map
+ * @param additionalArgs optional object that contains beforeDeserialize and/or afterDeserialize handlers
  */
-export default function mapAsArray(propSchema, keyPropertyName, additionalArgs) {
+export default function mapAsArray(
+    propSchema: PropSchema,
+    keyPropertyName: string,
+    additionalArgs?: AdditionalPropArgs
+): PropSchema {
     propSchema = propSchema || _defaultPrimitiveProp
     invariant(isPropSchema(propSchema), "expected prop schema as first argument")
     invariant(!!keyPropertyName, "expected key property name as second argument")
-    var res = {
-        serializer: function (m) {
+    let result: PropSchema = {
+        serializer: function(m) {
             invariant(m && typeof m === "object", "expected object or Map")
-            var isMap = isMapLike(m)
-            var result = []
+            const result = []
             // eslint-disable-next-line no-unused-vars
-            if (isMap) {
-                m.forEach(function (value) {
-                    result.push(propSchema.serializer(value))
-                })
-            } else for (var key in m) {
-                result.push(propSchema.serializer(m[key]))
-                // result[key] = propSchema.serializer(m[key])
+            if (isMapLike(m)) {
+                m.forEach((value, key) => result.push(propSchema.serializer(value, key, m)))
+            } else {
+                for (let key in m) result.push(propSchema.serializer(m[key], key, m))
             }
             return result
         },
-        deserializer: function (jsonArray, done, context, oldValue) {
+        deserializer: function(jsonArray, done, context, oldValue) {
             list(propSchema, additionalArgs).deserializer(
                 jsonArray,
-                function (err, values) {
-                    if (err)
-                        return void done(err)
-                    var isMap = isMapLike(oldValue)
-                    var newValue
-                    if (isMap) {
+                function(err, values) {
+                    if (err) return void done(err)
+                    const oldValueIsMap = isMapLike(oldValue)
+                    let newValue
+                    if (oldValueIsMap) {
                         oldValue.clear()
                         newValue = oldValue
                     } else {
                         newValue = {}
                     }
-                    for (var i = 0, l = jsonArray.length; i < l; i++)
-                        if (isMap)
-                            newValue.set(values[i][keyPropertyName], values[i])
-                        else
-                            newValue[values[i][keyPropertyName].toString()] = values[i]
+                    for (let i = 0, l = jsonArray.length; i < l; i++)
+                        if (oldValueIsMap) newValue.set(values[i][keyPropertyName], values[i])
+                        else newValue[values[i][keyPropertyName].toString()] = values[i]
                     done(null, newValue)
                 },
-                context
+                context,
+                undefined
             )
         }
     }
-    res = processAdditionalPropArgs(res, additionalArgs)
-    return res
+    result = processAdditionalPropArgs(result, additionalArgs)
+    return result
 }

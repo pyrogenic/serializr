@@ -1,4 +1,5 @@
 import { invariant, isModelSchema } from "../utils/utils"
+import { Clazz, ModelSchema } from "./types"
 
 /**
  * Sets the default model schema for class / constructor function.
@@ -8,11 +9,12 @@ import { invariant, isModelSchema } from "../utils/utils"
  * When passing an instance of this class to `serialize`, it is not required to pass the model schema
  * as first argument anymore, because the default schema will be inferred from the instance type.
  *
- * @param {constructor|class} clazz class or constructor function
- * @param {ModelSchema} modelSchema - a model schema
- * @returns {ModelSchema} model schema
+ * @param clazz class or constructor function
+ * @param modelSchema - a model schema
+ * @returns model schema
  */
-export default function setDefaultModelSchema(clazz, modelSchema) {
-    invariant(isModelSchema(modelSchema))
-    return clazz.serializeInfo = modelSchema
+export default function setDefaultModelSchema<T>(clazz: Clazz<T>, modelSchema: ModelSchema<T>) {
+    invariant(isModelSchema(modelSchema), "expected modelSchema, got " + modelSchema)
+    ;(clazz as any).serializeInfo = modelSchema
+    return modelSchema
 }

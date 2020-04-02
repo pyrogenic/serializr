@@ -1,5 +1,28 @@
+# 2.0.0
+* #117 TypeScript conversion. Type definitions should now match behavior exactly. By @NaridaL
+* **BREAKING CHANGE**: `@serializeAll("*": ModelSchema)` is no longer valid. Instead you should pass
+  `@serializeAll("*": object(ModelSchema))`.
+* **BREAKING CHANGE**: `{"*": object(...)}` and `{"x": object(...)}` now behave the same when
+  deserializing `{"x": "str_not_object"}` (result: `{x: null}`). Previously the `"*"` schema would
+  have returned `{}`.
+* **BREAKING CHANGE**: Removed deprecated `ref` and `child` functions. Use `reference` and `object`
+  instead.
+* BREAKING CHANGE: Removed undocumented and untested code which possibly retried deserialization on
+  error.
+* You can pass a `pattern` argument as `AdditionalPropArgs` instead of having to manually assign it
+  to a PropSchema: `@serializeAll("*": list(primitive(), { pattern: /^_.*/ }))`. Note this only make
+  sense together with the `"*"` property.
+
+# 1.5.4
+* #113: Fix interpolation problem with IE11 by @danfma
+
+# 1.5.3
+* #105: Support prop schemas for "*" properties by @pyrogenic
+* #104: Add the `@optional` decorator to skip properties not present in the serialized object by @pyrogenic
+* #99: Allow `serialize`-ing plain objects by specifying constructor by @pyrogenic
+
 # 1.5.2
-* Fixed potential memory leak, fixes #95 through #100 by @svennergr 
+* Fixed potential memory leak, fixes #95 through #100 by @svennergr
 
 # 1.5.1
 * Fixed make beforeDeserialize, afterDeserialize optional, see #94 by zeevl
